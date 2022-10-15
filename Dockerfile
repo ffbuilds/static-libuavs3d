@@ -23,8 +23,20 @@ RUN \
 
 FROM base AS build 
 COPY --from=download /tmp/uavs3d/ /tmp/uavs3d/
+ARG TARGETPLATFORM
 WORKDIR /tmp/uavs3d/build/linux
 RUN \
+  case ${TARGETPLATFORM} in \
+    linux/arm/v*) \
+      # Fake it 'til we make it
+      mkdir -p /usr/local/lib/pkgconfig/ && \
+      touch /usr/local/lib/pkgconfig/uavs3d.pc && \
+      touch /usr/local/lib/libuavs3d.a && \
+      mkdir -p /usr/local/include/ && \
+      touch /usr/local/include/uavs3d.h && \
+      exit 0 \
+    ;; \
+  esac && \
   apk add --no-cache --virtual build \
     build-base cmake && \
   # Removes BIT_DEPTH 10 to be able to build on other platforms. 10 was overkill anyways.
