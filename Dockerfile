@@ -5,9 +5,10 @@
 ARG UAVS3D_URL="https://github.com/uavs3/uavs3d.git"
 ARG UAVS3D_COMMIT=0133ee4b4bbbef7b88802e7ad019b14b9b852c2b
 
-# bump: alpine /FROM alpine:([\d.]+)/ docker:alpine|^3
-# bump: alpine link "Release notes" https://alpinelinux.org/posts/Alpine-$LATEST-released.html
-FROM alpine:3.16.2 AS base
+# Must be specified
+ARG ALPINE_VERSION
+
+FROM alpine:${ALPINE_VERSION} AS base
 
 FROM base AS download
 ARG UAVS3D_URL
@@ -38,7 +39,7 @@ RUN \
     ;; \
   esac && \
   apk add --no-cache --virtual build \
-    build-base cmake && \
+    build-base cmake pkgconf && \
   # Removes BIT_DEPTH 10 to be able to build on other platforms. 10 was overkill anyways.
   #  sed -i 's/define BIT_DEPTH 8/define BIT_DEPTH 10/' source/decore/com_def.h && \
   cmake \
@@ -48,6 +49,11 @@ RUN \
     -DBUILD_SHARED_LIBS=OFF \
     ../.. && \
   make -j$(nproc) install && \
+  # Sanity tests
+  pkg-config --exists --modversion --path uavs3d && \
+  ar -t /usr/local/lib/libuavs3d.a && \
+  readelf -h /usr/local/lib/libuavs3d.a && \
+  # Cleanup
   apk del build
 
 FROM scratch
